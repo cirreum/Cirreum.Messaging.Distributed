@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<AssemblyName>Cirreum.Messaging.Distributed</AssemblyName>
+		<RootNamespace>Cirreum</RootNamespace>
+		<Description>Messaging track — distributed-envelope orchestration for the Cirreum framework. DistributedMessage, MessageRegistry, MessageScanner, IDistributedTransportPublisher, options. Sibling to Cirreum.Messaging (generic queue/topic/transport abstractions); composes on top of it.</Description>
+		<PackageTags>cirreum;messaging;distributed;envelope;framework</PackageTags>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!--
+			Cirreum.Messaging.Distributed is the Messaging track distributed-envelope foundation.
+			Peer of Cirreum.Messaging (transport); both reference Cirreum.Kernel directly.
+			Composition with Cirreum.Messaging happens where concrete transports + distributed
+			envelopes wire together.
+		-->
+		<ProjectReference Include="..\..\..\..\Base\Cirreum.Kernel\src\Cirreum.Kernel\Cirreum.Kernel.csproj" />
+	</ItemGroup>
+
+	<!-- InternalsVisibleTo: Local Development Only -->
+	<ItemGroup Label="InternalsVisibleTo" Condition="'$(IsLocalBuild)' == 'true'">
+		<InternalsVisibleTo Include="Cirreum.Messaging.Distributed.Tests" />
+	</ItemGroup>
+
+</Project>
