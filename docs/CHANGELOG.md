@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-05
+
 ### Added
 
 - Initial release. Cirreum.Messaging.Distributed is the distributed-envelope foundation of the Messaging track, established as part of the **Cirreum 1.0 Foundation Reset** wave.
