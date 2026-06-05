@@ -20,6 +20,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Options** — `BackgroundDeliveryOptions`, `DistributionOptions`, `ReceiverOptions`, `SenderOptions`, `TimeBatchingProfile`, `TimeBatchingValidation`, `TimeScalingRule`
   - **Metrics** — `IMessagingMetricsService`
 
-### Migration
-
-Apps consuming the distributed-envelope content from `Cirreum.Core 5.x` migrate by installing `Cirreum.Messaging.Distributed` alongside existing `Cirreum.Messaging`. Namespace `Cirreum.Messaging.*` preserved.
+  See [`MIGRATION-v1.md`](MIGRATION-v1.md) for migration from `Cirreum.Core 5.x`.
