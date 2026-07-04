@@ -19,14 +19,16 @@ public sealed class EmptyTransportPublisher<TBase>(
 		DistributedMessageEnvelope envelope,
 		MessageTarget target,
 		CancellationToken cancellationToken = default) {
-		logger.LogInformation(
-			"EmptyTransportPublisher<{Channel}> dropping envelope [{Identifier}|v{Version}|{Target}] from {Producer}. " +
-			"No real transport is registered for this channel.",
-			typeof(TBase).Name,
-			envelope.MessageIdentifier,
-			envelope.MessageVersion,
-			target,
-			envelope.ProducerId);
+		if (logger.IsEnabled(LogLevel.Information)) {
+			logger.LogInformation(
+				"EmptyTransportPublisher<{Channel}> dropping envelope [{Identifier}|v{Version}|{Target}] from {Producer}. " +
+				"No real transport is registered for this channel.",
+				typeof(TBase).Name,
+				envelope.MessageIdentifier,
+				envelope.MessageVersion,
+				target,
+				envelope.ProducerId);
+		}
 		return Task.CompletedTask;
 	}
 
