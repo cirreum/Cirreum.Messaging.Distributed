@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`TimeOfDayBatchingPolicy`** + **`TimeOfDayBatchingOptions`** / **`TimeOfDayScalingRule`** — the framework-supplied day-of-week / time-of-day scaling policy the `IBatchingPolicy` documentation describes as usage level 2 (between the pass-through `DefaultBatchingPolicy` and a fully custom policy). The matching rule's scaling factor applies to the channel's base `BatchFillWaitTime` (capacity passes through); windows may wrap past midnight; the schedule declares an explicit `TimeZoneInfo` (defaulting to server-local) so containers running UTC can follow a business time zone. Configured in code via the runtime composition callback (`AddMessaging(m => m.UseTimeOfDayBatching(o => ...))` in `Cirreum.Runtime.Messaging`).
+
 ## [1.0.0] - 2026-06-05
 
 ### Added
