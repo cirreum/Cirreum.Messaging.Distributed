@@ -70,7 +70,12 @@ public record DistributedMessageEnvelope {
 			serializer(message),
 			definition.Identifier,
 			definition.Version,
-			typeof(TMessage).FullName ?? typeof(TMessage).Name,
+			// Full name PLUS the simple assembly name — a plain full name is only
+			// resolvable from this assembly or the core library, so receivers could
+			// never re-materialize app-defined message types. Deliberately not the
+			// full AssemblyQualifiedName: no version/culture/token, so assembly
+			// version drift between producer and consumer doesn't break resolution.
+			$"{typeof(TMessage).FullName ?? typeof(TMessage).Name}, {typeof(TMessage).Assembly.GetName().Name}",
 			producerId,
 			DateTimeOffset.UtcNow);
 
@@ -110,11 +115,48 @@ public record DistributedMessageEnvelope {
 	public DateTimeOffset? PublishedAt { get; init; }
 
 	/// <summary>
+	/// Resolves the CLR type named by <see cref="MessageType"/>, or <see langword="null"/>
+	/// when the type is not available in the current process.
+	/// </summary>
+	/// <remarks>
+	/// Tries <see cref="Type.GetType(string)"/> first (handles the assembly-hinted format
+	/// this envelope stamps), then falls back to searching the loaded assemblies by full
+	/// name — which also resolves envelopes from older producers that stamped a bare
+	/// full name.
+	/// </remarks>
+	public Type? ResolveMessageType() {
+
+		if (string.IsNullOrEmpty(this.MessageType)) {
+			return null;
+		}
+
+		var type = Type.GetType(this.MessageType);
+		if (type is not null) {
+			return type;
+		}
+
+		// Legacy envelopes carry a bare full name; strip any assembly hint and probe
+		// the loaded assemblies directly.
+		var fullName = this.MessageType.Split(',')[0].Trim();
+		foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+			if (assembly.IsDynamic) {
+				continue;
+			}
+			type = assembly.GetType(fullName);
+			if (type is not null) {
+				return type;
+			}
+		}
+
+		return null;
+	}
+
+	/// <summary>
 	/// Deserializes the inner message using the captured <see cref="MessageType"/> and
 	/// default JSON options.
 	/// </summary>
 	public object DeserializeMessage() {
-		var type = Type.GetType(this.MessageType)
+		var type = this.ResolveMessageType()
 			?? throw new InvalidOperationException($"Could not resolve type '{this.MessageType}'.");
 		return JsonSerializer.Deserialize(this.SerializedMessage, type)
 			?? throw new InvalidOperationException("Unable to deserialize message payload.");
@@ -124,7 +166,7 @@ public record DistributedMessageEnvelope {
 	/// Deserializes the inner message using a caller-supplied deserializer.
 	/// </summary>
 	public object DeserializeMessage(Func<Type, string, object> deserializer) {
-		var type = Type.GetType(this.MessageType)
+		var type = this.ResolveMessageType()
 			?? throw new InvalidOperationException($"Could not resolve type '{this.MessageType}'.");
 		return deserializer(type, this.SerializedMessage);
 	}

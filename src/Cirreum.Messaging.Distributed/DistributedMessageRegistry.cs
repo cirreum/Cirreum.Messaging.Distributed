@@ -25,18 +25,26 @@ public sealed class DistributedMessageRegistry(
 	/// Performs the standard Kernel scan and additionally captures the
 	/// <see cref="DistributedMessageTargetAttribute"/> for each discovered type.
 	/// </summary>
+	/// <remarks>
+	/// The target map is built from a direct assembly-scan pass rather than
+	/// <see cref="Type.GetType(string)"/> over the captured type names —
+	/// <c>Type.GetType</c> with a plain full name only resolves types in this assembly
+	/// or the core library, so message types defined in app assemblies would silently
+	/// fall back to <see cref="MessageTarget.Topic"/>.
+	/// </remarks>
 	public async ValueTask InitializeAsync() {
 		await this.DefaultInitializationAsync().ConfigureAwait(false);
-		foreach (var definition in this.GetAll()) {
-			var type = Type.GetType(definition.MessageType);
-			if (type is null) {
-				continue;
-			}
+		foreach (var type in AssemblyScanner.ScanExportedTypes(IsConcreteDistributedMessage)) {
 			var attr = type.GetCustomAttribute<DistributedMessageTargetAttribute>();
 			var target = attr?.Target ?? MessageTarget.Topic;
-			this._targets.TryAdd(definition.MessageType, target);
+			this._targets.TryAdd(type.FullName!, target);
 		}
 	}
+
+	private static bool IsConcreteDistributedMessage(Type type) =>
+		type.IsClass
+		&& !type.IsAbstract
+		&& typeof(DistributedMessage).IsAssignableFrom(type);
 
 	/// <inheritdoc/>
 	public MessageTarget GetTargetFor<T>() where T : DistributedMessage =>

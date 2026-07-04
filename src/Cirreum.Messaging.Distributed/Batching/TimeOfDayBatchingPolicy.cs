@@ -84,7 +84,7 @@ public sealed class TimeOfDayBatchingPolicy : IBatchingPolicy {
 		return new(
 			scaledWait,
 			context.BaseBatchCapacity,
-			rule?.Description ?? $"Time-of-day scaling {factor:0.##}x");
+			rule?.Description ?? FormattableString.Invariant($"Time-of-day scaling {factor:0.##}x"));
 	}
 
 	private TimeOfDayScalingRule? FindMatchingRule(DayOfWeek day, int hour) {

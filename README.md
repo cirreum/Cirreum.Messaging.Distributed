@@ -14,14 +14,16 @@
 
 Cirreum.Messaging.Distributed contains:
 
-- **Envelope types** — `DistributedMessage`, `DistributedMessageEnvelope`, `DistributedMessageHandler`, `DistributedMessagePriority`, `DistributedMessageReceived`
-- **Registry + scanning** — `IMessageRegistry`, `MessageDefinition`, `MessageDefinitionAttribute`, `MessageProperty`, `MessageRegistryBase`, `MessageScanner`, `MessageScannerLogger`, `MessageTarget`
-- **Transport contracts** — `IDistributedTransportPublisher`, `EmptyTransportPublisher`
+- **Envelope types** — `DistributedMessage`, `DistributedMessageEnvelope` (with `ResolveMessageType()` for receiver-side type resolution), `DistributedMessageHandler`, `DistributedMessagePriority`, `DistributedMessageReceived`
+- **Routing** — `DistributedMessageTargetAttribute` + `MessageTarget` (queue vs topic, per message type; pairs with `[MessageVersion]` from Cirreum.Kernel)
+- **Registry** — `IDistributedMessageRegistry` / `DistributedMessageRegistry` (the channel registry over the Kernel's `IMessageRegistry<TBase>` primitive, adding per-type target lookup)
+- **Transport contracts** — `IDistributedTransportPublisher<TBase>`, `EmptyTransportPublisher<TBase>`
+- **Batching strategy** — `IBatchingPolicy` + `BatchingContext` / `BatchingDecision`, the pass-through `DefaultBatchingPolicy`, and the framework-supplied `TimeOfDayBatchingPolicy` (+ `TimeOfDayBatchingOptions` / `TimeOfDayScalingRule`)
 - **Node identity** — `INodeIdProvider`, `DefaultNodeIdProvider`
-- **Options** — `BackgroundDeliveryOptions`, `DistributionOptions`, `ReceiverOptions`, `SenderOptions`, `TimeBatchingProfile`, `TimeBatchingValidation`, `TimeScalingRule`
+- **Options** — `DistributedMessagingOptions`, `BackgroundDeliveryOptions`, `ReceiverOptions`
 - **Metrics** — `IMessagingMetricsService`
 
-This package is pulled transitively only by tracks that publish or consume distributed envelopes (typically the Authentication and Identity tracks for cross-process auth event propagation).
+This package is the model; the runtime delivery engine (outbound Conductor bridge, batch processor, transport publisher, inbound receiver) lives in `Cirreum.Runtime.Messaging`. It is also pulled transitively by tracks that publish or consume distributed envelopes (e.g., cross-process auth event propagation).
 
 ## Relationship to Cirreum.Messaging
 
