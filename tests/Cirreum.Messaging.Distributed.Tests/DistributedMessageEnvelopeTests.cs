@@ -68,6 +68,16 @@ public class DistributedMessageEnvelopeTests {
 		envelope.ResolveMessageType().Should().BeNull();
 	}
 
+	[Theory]
+	[InlineData("")]
+	[InlineData("]]invalid[[type\\name!!")]
+	[InlineData("System.String[,,")]
+	public void ResolveMessageType_MalformedWireInput_ReturnsNull_NeverThrows(string messageType) {
+		var envelope = new DistributedMessageEnvelope { MessageType = messageType };
+
+		envelope.ResolveMessageType().Should().BeNull();
+	}
+
 	[Fact]
 	public void DeserializeMessage_Untyped_RestoresCrossAssemblyPayloads() {
 		var envelope = DistributedMessageEnvelope.Create(

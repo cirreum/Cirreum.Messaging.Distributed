@@ -130,22 +130,28 @@ public record DistributedMessageEnvelope {
 			return null;
 		}
 
-		var type = Type.GetType(this.MessageType);
-		if (type is not null) {
-			return type;
-		}
-
-		// Legacy envelopes carry a bare full name; strip any assembly hint and probe
-		// the loaded assemblies directly.
-		var fullName = this.MessageType.Split(',')[0].Trim();
-		foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
-			if (assembly.IsDynamic) {
-				continue;
-			}
-			type = assembly.GetType(fullName);
+		// The envelope crosses process boundaries — a malformed or hostile type name
+		// must resolve to null, never throw out of the receive path.
+		try {
+			var type = Type.GetType(this.MessageType);
 			if (type is not null) {
 				return type;
 			}
+
+			// Legacy envelopes carry a bare full name; strip any assembly hint and
+			// probe the loaded assemblies directly.
+			var fullName = this.MessageType.Split(',')[0].Trim();
+			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+				if (assembly.IsDynamic) {
+					continue;
+				}
+				type = assembly.GetType(fullName);
+				if (type is not null) {
+					return type;
+				}
+			}
+		} catch {
+			// fall through to null
 		}
 
 		return null;
