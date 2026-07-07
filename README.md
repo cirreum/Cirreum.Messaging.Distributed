@@ -14,10 +14,9 @@
 
 Cirreum.Messaging.Distributed contains:
 
-- **Envelope types** — `DistributedMessage`, `DistributedMessageEnvelope` (with `ResolveMessageType()` for receiver-side type resolution), `DistributedMessageHandler`, `DistributedMessagePriority`, `DistributedMessageReceived`
+- **Envelope types** — `DistributedMessage`, `DistributedMessageEnvelope` (a dumb wire record; receivers resolve the inbound type by identity via the registry's `ResolveType(identifier, version)` and deserialize with `DeserializeMessage(Type)`; the channel's wire format is System.Text.Json), `DistributedMessageHandler`, `DistributedMessagePriority`, `DistributedMessageReceived`
 - **Routing** — `DistributedMessageTargetAttribute` + `MessageTarget` (queue vs topic, per message type; pairs with `[MessageVersion]` from Cirreum.Kernel)
 - **Registry** — `IDistributedMessageRegistry` / `DistributedMessageRegistry` (the channel registry over the Kernel's `IMessageRegistry<TBase>` primitive, adding per-type target lookup)
-- **Transport contracts** — `IDistributedTransportPublisher<TBase>`, `EmptyTransportPublisher<TBase>`
 - **Batching strategy** — `IBatchingPolicy` + `BatchingContext` / `BatchingDecision`, the pass-through `DefaultBatchingPolicy`, and the framework-supplied `TimeOfDayBatchingPolicy` (+ `TimeOfDayBatchingOptions` / `TimeOfDayScalingRule`)
 - **Node identity** — `INodeIdProvider`, `DefaultNodeIdProvider`
 - **Options** — `DistributedMessagingOptions`, `BackgroundDeliveryOptions`, `ReceiverOptions`

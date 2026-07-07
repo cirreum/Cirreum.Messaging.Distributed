@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<AssemblyName>Cirreum.Messaging.Distributed</AssemblyName>
 		<RootNamespace>Cirreum</RootNamespace>
-		<Description>Messaging track — distributed-envelope orchestration for the Cirreum framework. DistributedMessage, MessageRegistry, MessageScanner, IDistributedTransportPublisher, options. Sibling to Cirreum.Messaging (generic queue/topic/transport abstractions); composes on top of it.</Description>
+		<Description>Messaging track — distributed-envelope orchestration for the Cirreum framework. DistributedMessage, DistributedMessageEnvelope, DistributedMessageRegistry, routing and batching contracts, options. Sibling to Cirreum.Messaging (generic queue/topic/transport abstractions); composes on top of it.</Description>
 		<PackageTags>cirreum;messaging;distributed;envelope;framework</PackageTags>
 	</PropertyGroup>
 
@@ -14,7 +14,7 @@
 			Composition with Cirreum.Messaging happens where concrete transports + distributed
 			envelopes wire together.
 		-->
-		<PackageReference Include="Cirreum.Kernel" Version="1.0.3" />
+		<PackageReference Include="Cirreum.Kernel" Version="1.1.0" />
 	</ItemGroup>
 
 	<!-- InternalsVisibleTo: Local Development Only -->

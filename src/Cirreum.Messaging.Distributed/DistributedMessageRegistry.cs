@@ -13,7 +13,9 @@ using System.Reflection;
 /// <remarks>
 /// Runtime composition (typically <c>Cirreum.Runtime.Messaging</c> or app code) constructs
 /// and initializes this registry by calling <see cref="InitializeAsync"/> during host
-/// startup.
+/// startup. The routing-target map is captured per discovery through the base scan's
+/// <see cref="MessageRegistryBase{TBase}.OnMessageDiscovered"/> hook — one assembly
+/// enumeration populates definitions, identity resolution, and routing together.
 /// </remarks>
 public sealed class DistributedMessageRegistry(
 	ILogger<DistributedMessageRegistry> logger
@@ -22,29 +24,16 @@ public sealed class DistributedMessageRegistry(
 	private readonly ConcurrentDictionary<string, MessageTarget> _targets = new();
 
 	/// <summary>
-	/// Performs the standard Kernel scan and additionally captures the
-	/// <see cref="DistributedMessageTargetAttribute"/> for each discovered type.
+	/// Performs the standard Kernel scan; the routing-target map is captured per
+	/// discovery via <see cref="OnMessageDiscovered"/>.
 	/// </summary>
-	/// <remarks>
-	/// The target map is built from a direct assembly-scan pass rather than
-	/// <see cref="Type.GetType(string)"/> over the captured type names —
-	/// <c>Type.GetType</c> with a plain full name only resolves types in this assembly
-	/// or the core library, so message types defined in app assemblies would silently
-	/// fall back to <see cref="MessageTarget.Topic"/>.
-	/// </remarks>
-	public async ValueTask InitializeAsync() {
-		await this.DefaultInitializationAsync().ConfigureAwait(false);
-		foreach (var type in AssemblyScanner.ScanExportedTypes(IsConcreteDistributedMessage)) {
-			var attr = type.GetCustomAttribute<DistributedMessageTargetAttribute>();
-			var target = attr?.Target ?? MessageTarget.Topic;
-			this._targets.TryAdd(type.FullName!, target);
-		}
-	}
+	public ValueTask InitializeAsync() => this.DefaultInitializationAsync();
 
-	private static bool IsConcreteDistributedMessage(Type type) =>
-		type.IsClass
-		&& !type.IsAbstract
-		&& typeof(DistributedMessage).IsAssignableFrom(type);
+	/// <inheritdoc/>
+	protected override void OnMessageDiscovered(MessageDiscovery discovery) {
+		var attr = discovery.ClrType.GetCustomAttribute<DistributedMessageTargetAttribute>();
+		this._targets.TryAdd(discovery.Definition.MessageType, attr?.Target ?? MessageTarget.Topic);
+	}
 
 	/// <inheritdoc/>
 	public MessageTarget GetTargetFor<T>() where T : DistributedMessage =>

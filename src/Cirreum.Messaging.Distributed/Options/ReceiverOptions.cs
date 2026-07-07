@@ -15,7 +15,7 @@ namespace Cirreum.Messaging.Options;
 /// </para>
 /// <list type="bullet">
 ///   <item><description><see cref="QueueName"/> — competing consumers; exactly one consumer processes each message. Used for work distribution.</description></item>
-///   <item><description><see cref="TopicName"/> + <see cref="SubscriptionName"/> — broadcast; each subscription receives a copy. Used for cross-head event reactions. Subscription name must be unique per deployed head so each head receives its own copy.</description></item>
+///   <item><description><see cref="TopicName"/> + <see cref="SubscriptionName"/> — the topic delivers a copy of each message to every subscription; consumers on the same subscription compete (one processes each message). Give each consuming service its own subscription name so each service reacts; that service's scaled replicas share the name and compete, so exactly one replica processes each message. Fanning a copy out to <em>every</em> replica would require a distinct, separately-provisioned subscription per replica — not this channel's model.</description></item>
 /// </list>
 /// </remarks>
 public sealed class ReceiverOptions {
@@ -39,9 +39,10 @@ public sealed class ReceiverOptions {
 	public string? TopicName { get; init; }
 
 	/// <summary>
-	/// Subscription name on <see cref="TopicName"/>. Unique per deployed head so every
-	/// head receives its own copy of every published message. Required when
-	/// <see cref="TopicName"/> is set.
+	/// Subscription name on <see cref="TopicName"/>. The topic delivers a copy to each
+	/// subscription; a service's scaled replicas share this name and compete, so exactly
+	/// one replica processes each message. Use a distinct name per consuming service (not
+	/// per replica). Required when <see cref="TopicName"/> is set.
 	/// </summary>
 	public string? SubscriptionName { get; init; }
 

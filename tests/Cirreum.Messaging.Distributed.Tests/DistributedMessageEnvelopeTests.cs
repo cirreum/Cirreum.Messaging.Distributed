@@ -40,55 +40,30 @@ public class DistributedMessageEnvelopeTests {
 	}
 
 	[Fact]
-	public void ResolveMessageType_ResolvesCrossAssemblyTypes() {
+	public void DeserializeMessage_WithResolvedType_RestoresThePayload() {
 		var envelope = DistributedMessageEnvelope.Create(
-			new QueueRoutedTestMessage("hello"),
+			new QueueRoutedTestMessage("resolved"),
 			QueueRoutedDefinition,
 			"test-producer");
 
-		envelope.ResolveMessageType().Should().Be<QueueRoutedTestMessage>();
-	}
-
-	[Fact]
-	public void ResolveMessageType_ResolvesLegacyBareFullNames() {
-		// Envelopes from pre-1.1.0 producers stamped a bare full name.
-		var legacy = new DistributedMessageEnvelope {
-			MessageType = typeof(QueueRoutedTestMessage).FullName!
-		};
-
-		legacy.ResolveMessageType().Should().Be<QueueRoutedTestMessage>();
-	}
-
-	[Fact]
-	public void ResolveMessageType_UnknownType_ReturnsNull() {
-		var envelope = new DistributedMessageEnvelope {
-			MessageType = "No.Such.Namespace.NoSuchType, No.Such.Assembly"
-		};
-
-		envelope.ResolveMessageType().Should().BeNull();
-	}
-
-	[Theory]
-	[InlineData("")]
-	[InlineData("]]invalid[[type\\name!!")]
-	[InlineData("System.String[,,")]
-	public void ResolveMessageType_MalformedWireInput_ReturnsNull_NeverThrows(string messageType) {
-		var envelope = new DistributedMessageEnvelope { MessageType = messageType };
-
-		envelope.ResolveMessageType().Should().BeNull();
-	}
-
-	[Fact]
-	public void DeserializeMessage_Untyped_RestoresCrossAssemblyPayloads() {
-		var envelope = DistributedMessageEnvelope.Create(
-			new QueueRoutedTestMessage("untyped"),
-			QueueRoutedDefinition,
-			"test-producer");
-
-		var message = envelope.DeserializeMessage();
+		// The caller resolves the type (canonically via the registry's identity map);
+		// the envelope performs no resolution of its own.
+		var message = envelope.DeserializeMessage(typeof(QueueRoutedTestMessage));
 
 		message.Should().BeOfType<QueueRoutedTestMessage>()
-			.Which.Payload.Should().Be("untyped");
+			.Which.Payload.Should().Be("resolved");
+	}
+
+	[Fact]
+	public void DeserializeMessage_NullType_Throws() {
+		var envelope = DistributedMessageEnvelope.Create(
+			new QueueRoutedTestMessage("x"),
+			QueueRoutedDefinition,
+			"test-producer");
+
+		var act = () => envelope.DeserializeMessage(null!);
+
+		act.Should().Throw<ArgumentNullException>();
 	}
 
 	[Fact]

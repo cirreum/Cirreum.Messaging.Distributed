@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `DistributedMessageEnvelope.DeserializeMessage(Type)` — deserialization against a **caller-resolved** concrete type (canonically the registry's `ResolveType(MessageIdentifier, MessageVersion)`). The envelope performs no type resolution of its own.
+
+### Changed
+
+- **The envelope no longer resolves CLR types, and the channel owns its serialization (ADR-0029).** `ResolveMessageType()` and the two self-resolving `DeserializeMessage` overloads (parameterless, and `Func<Type, string, object>`-only) are removed — replaced by `DeserializeMessage(Type)`. Inbound type resolution belongs to the registry's identity map, which only ever selects from the receiver's own vetted scan set; a wire-stamped CLR type name is no longer a resolution input anywhere in the message track. The `MessageType` stamp remains on the wire as diagnostic metadata (logging and dead-letter triage), documented as resolution-inert.
+- **The channel owns its serialization — System.Text.Json with internally-decided options.** The pluggable seam is removed (`CreateWithSerializer`, the `Func`-taking `DeserializeMessage` overloads, and the never-shipped `IDistributedPayloadSerializer`), and so is `FromJson(string, JsonSerializerOptions)` — callers no longer supply serialization options at all. Both the envelope and its payload serialize through one internally-owned `JsonSerializerOptions` (currently the STJ defaults), so producer and consumer are always symmetric. A message family owns its wire format end to end (the auth-events channel serializes STJ inline the same way); a different format is a different channel, not a serializer swap or a per-call option. The envelope was already STJ (`FromJson`), so a "pluggable payload serializer" only ever wrapped the inner string in a hardcoded-STJ envelope — incoherent, and consumer-less.
+- **`IDistributedTransportPublisher<TBase>` and `EmptyTransportPublisher<TBase>` are removed.** They were registered (the `Empty` no-op by `Cirreum.Services.Serverless`; the engine by `Cirreum.Runtime.Messaging`) but never resolved on any live path — the outbound Conductor handler injects the engine directly. Conductor is the channel's outbound extension seam: publish a `DistributedMessage` and Conductor fans out to handlers, including the engine's outbound handler when the delivery engine is installed; custom delivery is your own `INotificationHandler`.
+- All member removals ship as a minor per ADR-0029's prerelease convention — this package is reachable only through the framework's own umbrellas, which have no public adoption yet; any external caller fails loudly at compile time, pointed at the replacement.
+- `DistributedMessageRegistry` builds its routing-target map through the Kernel 1.1.0 `OnMessageDiscovered` hook instead of a second private assembly scan — one enumeration now populates definitions, identity resolution, and routing. Behavioral footnote: an *unversioned* type carrying `[DistributedMessageTarget]` no longer lands in the target map — such a type cannot obtain a definition, so no shipping path ever reached `GetTargetFor` with it, and the miss fallback remains `Topic`; the Kernel scanner now warns about exactly this at startup.
+- Re-pinned `Cirreum.Kernel` → 1.1.0 (the `MessageDiscovery`/`ResolveType`/`OnMessageDiscovered` surface this release builds on).
+
 ## [1.1.1] - 2026-07-05
 
 ### Updated

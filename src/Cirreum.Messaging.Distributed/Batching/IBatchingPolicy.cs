@@ -2,10 +2,9 @@ namespace Cirreum.Messaging.Batching;
 
 /// <summary>
 /// Strategy abstraction for dynamic batching behavior on a distributed-messaging
-/// channel. Replaces the hardcoded time-of-day batching profile system from
-/// <c>Cirreum.Core 5.x</c>; the framework's default implementation is a no-op (returns
-/// the channel's configured base values), apps may inject custom policies for
-/// time-of-day, traffic-aware, queue-depth-aware, or business-signal-aware batching.
+/// channel. The framework's default implementation is a no-op (returns the channel's
+/// configured base values); apps may inject custom policies for time-of-day,
+/// traffic-aware, queue-depth-aware, or business-signal-aware batching.
 /// </summary>
 /// <remarks>
 /// <para>

@@ -2,18 +2,15 @@ namespace Cirreum.Messaging.Options;
 
 /// <summary>
 /// Per-channel configuration for distributed messaging. One options instance is bound
-/// per registered channel — apps that need multiple channels register
-/// <c>AddDistributedMessaging&lt;TBase&gt;(...)</c> once per channel, each with its
-/// own configuration section.
+/// per registered channel from its own configuration section (the delivery engine binds
+/// it where installed, via <c>AddMessaging()</c> in <c>Cirreum.Runtime.Messaging</c>).
 /// </summary>
 /// <remarks>
 /// <para>
-/// Replaces the legacy <c>DistributionOptions</c> + <c>SenderOptions</c> pair from
-/// <c>Cirreum.Core 5.x</c>, which assumed a single global channel. The per-channel model
-/// supports independent transport configuration, subscription naming, and routing
-/// destinations — auth events on a dedicated Service Bus namespace separate from
-/// domain events on the main namespace, with each channel scaling and being secured
-/// independently.
+/// The per-channel model supports independent transport configuration, subscription
+/// naming, and routing destinations — e.g. auth events on a dedicated Service Bus
+/// namespace separate from domain events on the main namespace, with each channel
+/// scaling and being secured independently.
 /// </para>
 /// </remarks>
 public sealed class DistributedMessagingOptions {

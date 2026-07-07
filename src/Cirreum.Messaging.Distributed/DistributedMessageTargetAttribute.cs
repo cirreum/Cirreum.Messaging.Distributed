@@ -9,11 +9,11 @@ namespace Cirreum.Messaging;
 /// topic (publish-subscribe) delivery semantics within its configured channel.</param>
 /// <remarks>
 /// <para>
-/// The channel itself is determined by the message's base type (<see cref="DistributedMessage"/>);
-/// apps configure each channel's transport endpoint independently via
-/// <c>AddDistributedMessaging&lt;TBase&gt;(...)</c>. This attribute is a routing
-/// hint *within* that channel — does this message type fan out to multiple subscribers,
-/// or does a single consumer process it?
+/// The channel itself is determined by the message's base type
+/// (<see cref="DistributedMessage"/>), and its transport is configured where the delivery
+/// engine is installed (<c>AddMessaging()</c> in <c>Cirreum.Runtime.Messaging</c>). This
+/// attribute is a routing hint *within* that channel — does this message type fan out to
+/// multiple subscribers, or does a single consumer process it?
 /// </para>
 /// <para>
 /// When omitted, channels default to <see cref="MessageTarget.Topic"/> — pub/sub is

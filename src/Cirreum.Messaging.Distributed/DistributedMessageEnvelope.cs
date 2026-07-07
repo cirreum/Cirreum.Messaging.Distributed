@@ -7,12 +7,27 @@ using System.Text.Json;
 /// with metadata for cross-process delivery.
 /// </summary>
 /// <remarks>
-/// Created by the outbound transport publisher at send time; reconstructed by the inbound
+/// Created by the channel's delivery engine at send time; reconstructed by the inbound
 /// receiver on the other side. The envelope shape is the stable cross-version contract;
-/// the inner serialized payload follows the message type's schema as captured by its
-/// <see cref="MessageVersionAttribute"/> identifier+version pair.
+/// both the envelope and its inner payload are System.Text.Json with the channel's own
+/// options, <b>decided internally</b> (see <see cref="SerializerOptions"/>) — callers do
+/// not supply serialization options, because the wire must be symmetric across producer
+/// and consumer. The family owns its wire format; a different format is a different
+/// channel, not a per-call option. The receiver resolves the inner type by identity
+/// through the registry (<c>ResolveType(MessageIdentifier, MessageVersion)</c>) and hands
+/// it to <see cref="DeserializeMessage(Type)"/>; the envelope performs no type resolution
+/// of its own.
 /// </remarks>
 public record DistributedMessageEnvelope {
+
+	/// <summary>
+	/// The channel's wire serialization options for both the envelope and its payload —
+	/// the single, internally-owned source of truth so producer and consumer are always
+	/// symmetric. Currently the System.Text.Json defaults; the one place to change the
+	/// channel's on-the-wire JSON behavior should that ever be needed (a wire-format
+	/// decision, kept off the public API deliberately).
+	/// </summary>
+	private static readonly JsonSerializerOptions SerializerOptions = new();
 
 	/// <summary>
 	/// Parameterless constructor for serialization.
@@ -41,56 +56,31 @@ public record DistributedMessageEnvelope {
 	}
 
 	/// <summary>
-	/// Creates a new envelope from a typed message, using <c>System.Text.Json</c>
-	/// defaults for serialization.
+	/// Creates a new envelope from a typed message. The inner payload is serialized with
+	/// System.Text.Json — the channel's wire format.
 	/// </summary>
 	public static DistributedMessageEnvelope Create<TMessage>(
 		TMessage message,
 		MessageDefinition definition,
 		string producerId)
 		where TMessage : DistributedMessage =>
-		CreateWithSerializer(
-			message,
-			definition,
-			producerId,
-			m => JsonSerializer.Serialize(m));
-
-	/// <summary>
-	/// Creates a new envelope from a typed message using a caller-supplied serializer.
-	/// Use when the channel requires a non-default <see cref="JsonSerializerOptions"/>
-	/// (camelCase, custom converters, etc.) or a non-JSON wire format.
-	/// </summary>
-	public static DistributedMessageEnvelope CreateWithSerializer<TMessage>(
-		TMessage message,
-		MessageDefinition definition,
-		string producerId,
-		Func<TMessage, string> serializer)
-		where TMessage : DistributedMessage =>
 		new(
-			serializer(message),
+			JsonSerializer.Serialize(message, SerializerOptions),
 			definition.Identifier,
 			definition.Version,
 			// Full name PLUS the simple assembly name — a plain full name is only
-			// resolvable from this assembly or the core library, so receivers could
-			// never re-materialize app-defined message types. Deliberately not the
-			// full AssemblyQualifiedName: no version/culture/token, so assembly
-			// version drift between producer and consumer doesn't break resolution.
+			// resolvable from this assembly or the core library. This value is diagnostic
+			// metadata (see MessageType); it is deliberately not the full
+			// AssemblyQualifiedName (no version/culture/token).
 			$"{typeof(TMessage).FullName ?? typeof(TMessage).Name}, {typeof(TMessage).Assembly.GetName().Name}",
 			producerId,
 			DateTimeOffset.UtcNow);
 
 	/// <summary>
-	/// Deserializes a JSON envelope.
+	/// Deserializes a JSON envelope using the channel's own serialization options.
 	/// </summary>
 	public static DistributedMessageEnvelope FromJson(string json) =>
-		JsonSerializer.Deserialize<DistributedMessageEnvelope>(json)
-			?? throw new InvalidOperationException("Unable to deserialize envelope from JSON.");
-
-	/// <summary>
-	/// Deserializes a JSON envelope with custom serializer options.
-	/// </summary>
-	public static DistributedMessageEnvelope FromJson(string json, JsonSerializerOptions options) =>
-		JsonSerializer.Deserialize<DistributedMessageEnvelope>(json, options)
+		JsonSerializer.Deserialize<DistributedMessageEnvelope>(json, SerializerOptions)
 			?? throw new InvalidOperationException("Unable to deserialize envelope from JSON.");
 
 	/// <summary>The serialized payload of the inner message.</summary>
@@ -102,7 +92,14 @@ public record DistributedMessageEnvelope {
 	/// <summary>The schema version (from <see cref="MessageVersionAttribute.Version"/>).</summary>
 	public string MessageVersion { get; init; }
 
-	/// <summary>The fully qualified CLR type name of the inner message.</summary>
+	/// <summary>
+	/// The assembly-hinted CLR type name of the inner message — <b>diagnostic metadata
+	/// only</b>, never a resolution input. Inbound type resolution goes through the
+	/// registry's identity map (<c>ResolveType(MessageIdentifier, MessageVersion)</c>),
+	/// which only ever selects from the receiver's own vetted scan set; this name exists
+	/// for logging and dead-letter triage, where it is the operator's best hint about
+	/// what a producer actually sent.
+	/// </summary>
 	public string MessageType { get; init; }
 
 	/// <summary>The id of the producer that created the envelope.</summary>
@@ -115,79 +112,23 @@ public record DistributedMessageEnvelope {
 	public DateTimeOffset? PublishedAt { get; init; }
 
 	/// <summary>
-	/// Resolves the CLR type named by <see cref="MessageType"/>, or <see langword="null"/>
-	/// when the type is not available in the current process.
+	/// Deserializes the inner message to the given concrete type using System.Text.Json.
 	/// </summary>
-	/// <remarks>
-	/// Tries <see cref="Type.GetType(string)"/> first (handles the assembly-hinted format
-	/// this envelope stamps), then falls back to searching the loaded assemblies by full
-	/// name — which also resolves envelopes from older producers that stamped a bare
-	/// full name.
-	/// </remarks>
-	public Type? ResolveMessageType() {
-
-		if (string.IsNullOrEmpty(this.MessageType)) {
-			return null;
-		}
-
-		// The envelope crosses process boundaries — a malformed or hostile type name
-		// must resolve to null, never throw out of the receive path.
-		try {
-			var type = Type.GetType(this.MessageType);
-			if (type is not null) {
-				return type;
-			}
-
-			// Legacy envelopes carry a bare full name; strip any assembly hint and
-			// probe the loaded assemblies directly.
-			var fullName = this.MessageType.Split(',')[0].Trim();
-			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
-				if (assembly.IsDynamic) {
-					continue;
-				}
-				type = assembly.GetType(fullName);
-				if (type is not null) {
-					return type;
-				}
-			}
-		} catch {
-			// fall through to null
-		}
-
-		return null;
-	}
-
-	/// <summary>
-	/// Deserializes the inner message using the captured <see cref="MessageType"/> and
-	/// default JSON options.
-	/// </summary>
-	public object DeserializeMessage() {
-		var type = this.ResolveMessageType()
-			?? throw new InvalidOperationException($"Could not resolve type '{this.MessageType}'.");
-		return JsonSerializer.Deserialize(this.SerializedMessage, type)
+	/// <param name="messageType">The concrete message type — resolved by the caller,
+	/// canonically via the registry's identity map
+	/// (<c>ResolveType(MessageIdentifier, MessageVersion)</c>). The envelope performs no
+	/// type resolution of its own.</param>
+	public object DeserializeMessage(Type messageType) {
+		ArgumentNullException.ThrowIfNull(messageType);
+		return JsonSerializer.Deserialize(this.SerializedMessage, messageType, SerializerOptions)
 			?? throw new InvalidOperationException("Unable to deserialize message payload.");
-	}
-
-	/// <summary>
-	/// Deserializes the inner message using a caller-supplied deserializer.
-	/// </summary>
-	public object DeserializeMessage(Func<Type, string, object> deserializer) {
-		var type = this.ResolveMessageType()
-			?? throw new InvalidOperationException($"Could not resolve type '{this.MessageType}'.");
-		return deserializer(type, this.SerializedMessage);
 	}
 
 	/// <summary>
 	/// Deserializes the inner message to a known type <typeparamref name="T"/>.
 	/// </summary>
 	public T DeserializeMessage<T>() =>
-		JsonSerializer.Deserialize<T>(this.SerializedMessage)
+		JsonSerializer.Deserialize<T>(this.SerializedMessage, SerializerOptions)
 			?? throw new InvalidOperationException("Unable to deserialize message payload.");
-
-	/// <summary>
-	/// Deserializes the inner message using a caller-supplied deserializer.
-	/// </summary>
-	public T DeserializeMessage<T>(Func<string, T> deserializer) =>
-		deserializer(this.SerializedMessage);
 
 }

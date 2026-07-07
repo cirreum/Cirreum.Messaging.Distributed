@@ -7,8 +7,10 @@ using System.Text.Json.Serialization;
 /// Base record for messages distributed to external systems via Cirreum's distributed-
 /// messaging channel. Inherits <see cref="INotification"/> (from <c>Cirreum.Kernel</c>)
 /// so distributed messages flow through Conductor's publisher pipeline — apps publish
-/// once via <c>IPublisher.PublishAsync(myMessage)</c> and the framework fans out to all
-/// in-process handlers AND to the configured <see cref="IDistributedTransportPublisher{TBase}"/>.
+/// once via <c>IPublisher.PublishAsync(myMessage)</c> and Conductor fans out to all
+/// in-process handlers, including — when the delivery engine is installed
+/// (<c>Cirreum.Runtime.Messaging</c>) — the outbound handler that ships the message
+/// across the transport.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -26,11 +28,11 @@ using System.Text.Json.Serialization;
 /// </para>
 /// <para>
 /// <b>Channel:</b> The channel this message belongs to is <c>DistributedMessage</c>
-/// itself (the <c>TBase</c>). Apps that want a separate channel — e.g., for auth events,
-/// telemetry, or domain-specific isolation — define their own base type or marker
-/// interface, decorate with <c>[MessageVersion]</c>, and register a parallel
-/// <c>IDistributedTransportPublisher&lt;TTheirBase&gt;</c> with its own transport
-/// configuration.
+/// itself (the <c>TBase</c>). A separate channel — e.g., for auth events, telemetry, or
+/// domain-specific isolation — is a distinct family: its own base type or marker
+/// interface decorated with <c>[MessageVersion]</c>, its own <c>IMessageRegistry</c>,
+/// and its own transport, dispatched by its own outbound handler (the auth-events
+/// channel is exactly this shape over a broadcast transport).
 /// </para>
 /// </remarks>
 public abstract record DistributedMessage : INotification {

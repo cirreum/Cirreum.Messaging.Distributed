@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work for **Cirreum.Kernel**. Items here are tracked but not yet ready
+Deferred work for **Cirreum.Messaging.Distributed**. Items here are tracked but not yet ready
 to ship — either because the cost outweighs the benefit in isolation, or
 because they're waiting on a forcing function (a related change, a consumer
 upgrade, a coordinated multi-repo rollout).
@@ -18,3 +18,5 @@ upgrade, a coordinated multi-repo rollout).
   `[Unreleased]`. Items that grow into design discussions: promote to an ADR.
 
 ## Queued
+
+_None._
