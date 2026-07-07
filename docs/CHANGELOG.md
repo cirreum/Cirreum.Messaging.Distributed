@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-07
+
 ### Added
 
 - `DistributedMessageEnvelope.DeserializeMessage(Type)` — deserialization against a **caller-resolved** concrete type (canonically the registry's `ResolveType(MessageIdentifier, MessageVersion)`). The envelope performs no type resolution of its own.
