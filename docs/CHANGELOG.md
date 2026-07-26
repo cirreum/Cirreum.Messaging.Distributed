@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Updated
+
+- Re-pinned `Cirreum.Kernel` `1.3.0` → `2.0.0`, which carries the marker rename this release follows.
+
 ### Changed
 
 - **Conductor's publish/subscribe markers are renamed** — `INotification` → `IDomainEvent`,
