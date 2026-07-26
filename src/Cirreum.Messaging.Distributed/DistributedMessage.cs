@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 /// <summary>
 /// Base record for messages distributed to external systems via Cirreum's distributed-
-/// messaging channel. Inherits <see cref="INotification"/> (from <c>Cirreum.Kernel</c>)
+/// messaging channel. Inherits <see cref="IDomainEvent"/> (from <c>Cirreum.Kernel</c>)
 /// so distributed messages flow through Conductor's publisher pipeline — apps publish
 /// once via <c>IPublisher.PublishAsync(myMessage)</c> and Conductor fans out to all
 /// in-process handlers, including — when the delivery engine is installed
@@ -35,7 +35,7 @@ using System.Text.Json.Serialization;
 /// channel is exactly this shape over a broadcast transport).
 /// </para>
 /// </remarks>
-public abstract record DistributedMessage : INotification {
+public abstract record DistributedMessage : IDomainEvent {
 
 	/// <summary>
 	/// Whether this specific message instance prefers background (batched, asynchronous)

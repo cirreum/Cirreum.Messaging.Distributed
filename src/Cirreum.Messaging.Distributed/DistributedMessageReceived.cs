@@ -4,14 +4,14 @@ using Cirreum.Conductor;
 
 /// <summary>
 /// Wraps an inbound distributed message for dispatch via Conductor's notification
-/// pipeline. App handlers implement <see cref="INotificationHandler{TNotification}"/>
+/// pipeline. App handlers implement <see cref="IDomainEventHandler{TDomainEvent}"/>
 /// over this wrapper type to react to received messages.
 /// </summary>
 /// <typeparam name="TMessage">The concrete <see cref="DistributedMessage"/> type
 /// deserialized from the envelope payload.</typeparam>
 /// <remarks>
 /// <para>
-/// <see cref="DistributedMessage"/> itself implements <see cref="INotification"/> and is
+/// <see cref="DistributedMessage"/> itself implements <see cref="IDomainEvent"/> and is
 /// intercepted by the outbound handler that routes publishes through the configured
 /// transport. Publishing a deserialized <see cref="DistributedMessage"/> directly through
 /// Conductor would re-trigger that outbound interceptor — re-publishing the received
@@ -31,5 +31,5 @@ using Cirreum.Conductor;
 public sealed record DistributedMessageReceived<TMessage>(
 	TMessage Message,
 	DistributedMessageEnvelope Envelope
-) : INotification
+) : IDomainEvent
 	where TMessage : notnull, DistributedMessage;
