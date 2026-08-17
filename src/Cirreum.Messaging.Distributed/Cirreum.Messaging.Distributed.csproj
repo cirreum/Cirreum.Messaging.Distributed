@@ -14,7 +14,7 @@
 			Composition with Cirreum.Messaging happens where concrete transports + distributed
 			envelopes wire together.
 		-->
-		<PackageReference Include="Cirreum.Kernel" Version="2.1.0" />
+		<PackageReference Include="Cirreum.Kernel" Version="2.1.1" />
 	</ItemGroup>
 
 	<!-- InternalsVisibleTo: Local Development Only -->
