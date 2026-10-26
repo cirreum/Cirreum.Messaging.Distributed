@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`DistributedMessageEnvelope.Subject`** — the subject on whose behalf a message was
+  published, as asserted by the producer: `DistributedMessageSubject(Id, Name, Scheme, Roles)`.
+  Nullable and absent from older envelopes, so the wire stays compatible in both directions.
+  `Create` takes it as an optional trailing parameter. The values are the producer's assertion;
+  honouring them is the consumer's decision.
+
 ## [2.0.6] - 2026-10-25
 
 ### Updated

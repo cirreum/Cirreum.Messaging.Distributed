@@ -46,23 +46,31 @@ public record DistributedMessageEnvelope {
 		string messageVersion,
 		string messageType,
 		string producerId,
-		DateTimeOffset publishedAt) {
+		DateTimeOffset publishedAt,
+		DistributedMessageSubject? subject) {
 		this.SerializedMessage = serializedMessage;
 		this.MessageIdentifier = messageIdentifier;
 		this.MessageVersion = messageVersion;
 		this.MessageType = messageType;
 		this.ProducerId = producerId;
 		this.PublishedAt = publishedAt;
+		this.Subject = subject;
 	}
 
 	/// <summary>
 	/// Creates a new envelope from a typed message. The inner payload is serialized with
 	/// System.Text.Json — the channel's wire format.
 	/// </summary>
+	/// <param name="message">The message to wrap.</param>
+	/// <param name="definition">The message's registered definition.</param>
+	/// <param name="producerId">The id of the producer creating the envelope.</param>
+	/// <param name="subject">The subject on whose behalf the message is published, or
+	/// <see langword="null"/> when there is none.</param>
 	public static DistributedMessageEnvelope Create<TMessage>(
 		TMessage message,
 		MessageDefinition definition,
-		string producerId)
+		string producerId,
+		DistributedMessageSubject? subject = null)
 		where TMessage : DistributedMessage =>
 		new(
 			JsonSerializer.Serialize(message, SerializerOptions),
@@ -74,7 +82,8 @@ public record DistributedMessageEnvelope {
 			// AssemblyQualifiedName (no version/culture/token).
 			$"{typeof(TMessage).FullName ?? typeof(TMessage).Name}, {typeof(TMessage).Assembly.GetName().Name}",
 			producerId,
-			DateTimeOffset.UtcNow);
+			DateTimeOffset.UtcNow,
+			subject);
 
 	/// <summary>
 	/// Deserializes a JSON envelope using the channel's own serialization options.
@@ -110,6 +119,13 @@ public record DistributedMessageEnvelope {
 	/// envelopes serialized prior to the field's introduction.
 	/// </summary>
 	public DateTimeOffset? PublishedAt { get; init; }
+
+	/// <summary>
+	/// The subject on whose behalf the message was published, as asserted by the producer,
+	/// or <see langword="null"/> when the producer carried none. Absent from envelopes
+	/// serialized prior to the field's introduction.
+	/// </summary>
+	public DistributedMessageSubject? Subject { get; init; }
 
 	/// <summary>
 	/// Deserializes the inner message to the given concrete type using System.Text.Json.
