@@ -67,4 +67,12 @@ public sealed class ReceiverOptions {
 	/// </summary>
 	public TimeSpan GracefulShutdownTimeout { get; init; } = TimeSpan.FromSeconds(30);
 
+	/// <summary>
+	/// Whether the receiver runs a message's handlers as the subject the envelope carries
+	/// (<see cref="DistributedMessageEnvelope.Subject"/>). When <see langword="false"/>, the
+	/// default, handlers run as the receiving host. The subject is the producer's assertion,
+	/// so enabling this trusts every producer on the source to state who sent a message.
+	/// </summary>
+	public bool TrustEnvelopeSubject { get; init; }
+
 }

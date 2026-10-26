@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Nullable and absent from older envelopes, so the wire stays compatible in both directions.
   `Create` takes it as an optional trailing parameter. The values are the producer's assertion;
   honouring them is the consumer's decision.
+- **`ReceiverOptions.TrustEnvelopeSubject`** — opt-in for a receiver to run handlers as the
+  subject the envelope carries. Off by default: handlers run as the receiving host.
 
 ## [2.0.6] - 2026-10-25
 
